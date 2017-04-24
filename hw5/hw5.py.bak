@@ -1,0 +1,86 @@
+# Homework 5 for Cynthia Rudin's Machine Learning class
+# All State challenge from Kaggle
+# Jeremy Fox
+
+import numpy as np
+import theano
+import theano.tensor as T
+from sklearn import metrics, preprocessing
+from sklearn.neural_network import MLPRegressor
+import csv
+# Read in data
+def read_data(filename, test=False):
+    # Reads in data, skipping the header and inferring the type
+    data = np.genfromtxt(filename, delimiter=',', dtype=None, skip_header=1)
+    print "genned"
+
+
+    # convert categorical data to numeric, store Label Encoders for later use
+    les = {}
+    for i, name in enumerate(data.dtype.names):
+        col = data[name]
+        if isinstance(col[0], basestring):
+            le = preprocessing.LabelEncoder()
+            le.fit(col)
+            data[name] = le.transform(col)
+            les[i] = le
+
+    # convert structured array to 2d np array
+    out = np.empty((len(data),len(data[0])),dtype=np.float)
+    for i, name in enumerate(data.dtype.names):
+        out[:,i] = data[name].astype(float)
+        # TODO: does this convert to float correctly?
+
+    # remove and store ids
+    ids = out[:,0].astype(int)
+    np.delete(out,0,1)
+
+    # save labels and remove them from data
+    if not test:
+        Y = out[:,-1]
+        out = np.delete(out,-1,1)
+
+    # standardize data
+  #  out = preprocessing.scale(out)
+    if test:
+        return out, ids
+    return out, Y, les # TODO: Les is off an index because I deleted the id
+
+def row_to_column(row):
+    return np.reshape(row,(row.shape[0],1))
+
+def combine_data_and_labels(data, labels):
+    print data.shape
+    print labels.shape
+    #data = row_to_column(data)
+    #labels = row_to_column(labels)
+    #out = np.append(data,labels,axis=1)
+    return zip(data,labels)
+
+def write_csv(matrix, filepath):
+    ofile = open(filepath,"wb")
+    writer = csv.writer(ofile,delimiter=',')
+    for row in matrix:
+        writer.writerow(row)
+    ofile.close()
+
+
+data, y, les = read_data("pml_train.csv")
+reg = MLPRegressor(hidden_layer_sizes=(15,))
+reg.fit(data,y)
+print "fitted"
+test_data, ids = read_data("pml_test_features.csv", True)
+
+# convert ids to integers
+ids = ids.astype(int)
+
+test_labels = reg.predict(test_data)
+out_matrix = combine_data_and_labels(ids, test_labels)
+
+write_csv(out_matrix,"out.csv")
+
+print "finished"
+
+
+
+

@@ -1,0 +1,71 @@
+# Homework 5 for Cynthia Rudin's Machine Learning class
+# All State challenge from Kaggle
+# Jeremy Fox
+
+import numpy as np
+import theano
+import theano.tensor as T
+from sklearn import metrics, preprocessing
+from sklearn.neural_network import MLPRegressor
+# Read in data
+def read_data(filename, test=False):
+    # Reads in data, skipping the header and inferring the type
+    data = np.genfromtxt(filename, delimiter=',', dtype=None, skip_header=1)
+
+    # convert categorical data to numeric, store Label Encoders for later use
+    les = {}
+    for i, name in enumerate(data.dtype.names):
+        col = data[name]
+        if isinstance(col[0], basestring):
+            le = preprocessing.LabelEncoder()
+            le.fit(col)
+            data[name] = le.transform(col)
+            les[i] = le
+
+    # convert structured array to 2d np array
+    out = np.empty((len(data),len(data[0])),dtype=np.float)
+    for i, name in enumerate(data.dtype.names):
+        out[:,i] = data[name].astype(float)
+        # TODO: does this convert to float correctly?
+
+    # remove id
+    out = np.delete(out,0,1)
+
+    # save labels and remove them from data
+    if not test:
+        Y = out[:,-1]
+        out = np.delete(out,-1,1)
+
+    # standardize data
+  #  out = preprocessing.scale(out)
+    if test:
+        return out
+    return out, Y, les # TODO: Les is off an index because I deleted the id
+
+def combine_data_and_labels(data, labels):
+    out = np.append(data,labels,axis=1)
+    return out
+
+def write_csv(matrix, filepath):
+    ofile = open(filepath,"wb")
+    writer = csv.writer(ofile,delimiter=',')
+    for row in matrix:
+        writer.writerow(row)
+    ofile.close()
+
+
+data, y, les = read_data("pml_train.csv")
+reg = MLPRegressor(hidden_layer_sizes=(100,100))
+reg.fit(data,y)
+test_data = read_data("pml_test_features.csv", True)
+
+test_labels = reg.predict(test_data)
+out_matrix = combine_data_and_labels(test_data,test_labels)
+
+write_csv(out_matrix,"out.csv")
+
+print "finished"
+
+
+
+
